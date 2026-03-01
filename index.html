@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Jazz Drummer Pong (Vocal Trigger Edition)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        background: #0f0f19;
+        overflow: hidden;
+        font-family: system-ui, -apple-system, sans-serif;
+        color: #f3f3f3;
+        min-height: 100vh;
+      }
+      #defaultCanvas0 {
+        display: block !important;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+      }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .hint {
+        pointer-events: none;
+      }
+      .hint {
+        background: rgba(0,0,0,0.7);
+        border: 1px solid rgba(255,150,0,0.8);
+        border-radius: 10px;
+        padding: 16px 24px;
+        font-size: 14px;
+        color: #f5f5f5;
+        text-align: center;
+        max-width: 90%;
+      }
+      .hint strong { color: #ff9600; }
+      .hint .click { margin-top: 8px; font-size: 16px; color: #ff9600; }
+      .hint a { color: #ff9600; text-decoration: underline; pointer-events: auto; }
+      .hint a:hover { color: #ffcc00; }
+    </style>
+  </head>
+  <body>
+    <div class="overlay">
+      <div class="hint">
+        <div><strong>Jazz Drummer Pong</strong></div>
+        <div class="click">👉 点击画面任意位置以解锁音频并开始</div>
+        <div>左侧：W/S  右侧：↑/↓  喊「Peng!」触发障碍</div>
+        <div style="margin-top:10px;font-size:12px;">
+          <a href="https://ia801402.us.archive.org/6/items/78_crazy_blues_mamie_smith_and_her_jazz_hounds/crazy_blues.mp3" download="jazz.mp3" target="_blank">下载 jazz.mp3</a>
+          或终端运行：<code style="font-size:11px;">curl -L -o jazz.mp3 "https://ia801402.us.archive.org/6/items/78_crazy_blues_mamie_smith_and_her_jazz_hounds/crazy_blues.mp3"</code>
+        </div>
+      </div>
+    </div>
+    <script src="sketch.js"></script>
+  </body>
+</html>
