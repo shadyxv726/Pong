@@ -7,12 +7,12 @@ var speedMultiplier = 16;
 // 中线障碍
 var SEG_COUNT = 6;
 var segments = [];
-var activeSegmentIndex = -1;
+var activeSegmentIndices = [];
 var activeUntil = 0;
 
 // 音频
 var mic;
-var micThreshold = 0.05; // 降低阈值，更容易触发“Peng!”
+var micThreshold = 0.035; // 需玩家发声（如 peng），避免环境噪音误触
 var lastPengTime = 0;
 var pengCooldown = 300;
 
@@ -23,6 +23,14 @@ var ambientOsc1, ambientOsc2; // 无文件时的合成背景音
 
 var ripples = [];
 var audioStarted = false;
+
+// 比分与游戏结束（三轮制，先赢两局胜）
+var leftScore = 0;
+var rightScore = 0;
+var gameOver = null; // null | 'left' | 'right' — first to 10 wins
+
+// 背景图
+var bgImg;
 
 // 爵士背景乐：依次尝试在线（archive.org 通常支持 CORS），全失败则合成音
 // 也可将 jazz.mp3 放同目录后刷新
@@ -103,8 +111,12 @@ function tryLoadJazzBgUrl(onDone) {
   tryNext();
 }
 
-// 不在 preload 里加载 jazz.mp3，避免 404 导致部分环境卡住、setup 不执行、画布不创建
-// 需要爵士乐：将 jazz.mp3 放同目录后按 M 加载
+// 不在 preload 里加载 jazz.mp3，避免 404 导致部分环境卡住
+// 背景图在 preload 中加载（本地文件，通常很快）
+function preload() {
+  bgImg = loadImage('bg.png', function() {}, function() { bgImg = null; });
+}
+
 // ========== 初始化 ==========
 function setup() {
   jazzMusic = null;
@@ -143,9 +155,20 @@ function setup() {
   snareSound = null;
   tomSound = null;
   cymbalSound = null;
+
+  leftScore = 0;
+  rightScore = 0;
+  gameOver = null;
 }
 
 function mousePressed() {
+  if (gameOver) {
+    gameOver = null;
+    leftScore = 0;
+    rightScore = 0;
+    resetBall();
+    return;
+  }
   if (audioStarted) return;
   userStartAudio().then(function() {
     audioStarted = true;
@@ -179,7 +202,15 @@ function mousePressed() {
 }
 
 // 按 M 键可选加载并播放 jazz.mp3（需先把文件放在同目录，再按 M）
+// 按 R 键或点击可重新开始（游戏结束时）
 function keyPressed() {
+  if (gameOver && (key === 'r' || key === 'R' || keyCode === 82)) {
+    gameOver = null;
+    leftScore = 0;
+    rightScore = 0;
+    resetBall();
+    return false;
+  }
   if (key === 'm' || key === 'M') {
     loadSound(
       'jazz.mp3',
@@ -202,7 +233,16 @@ function keyPressed() {
 
 // ========== 主循环 ==========
 function draw() {
-  background('#0f0f19');
+  if (bgImg) {
+    image(bgImg, 0, 0, width, height);
+  } else {
+    background('#0f0f19');
+  }
+
+  if (gameOver) {
+    drawGameOver();
+    return;
+  }
 
   drawBackgroundGlow();
   applyMusicToBallSpeed();
@@ -212,6 +252,7 @@ function draw() {
   handleCollisions();
 
   drawCenterSegments();
+  syncCentrePianoKeysLit();
   drawPaddles();
   drawBallWithTrail();
   updateAndDrawRipples();
@@ -277,7 +318,15 @@ function updateBall() {
   ball.y += ball.vy;
   if (ball.y - ball.r < 0) { ball.y = ball.r; ball.vy *= -1; }
   if (ball.y + ball.r > height) { ball.y = height - ball.r; ball.vy *= -1; }
-  if (ball.x < -80 || ball.x > width + 80) resetBall();
+  if (ball.x < -80) {
+    rightScore++;
+    if (rightScore >= 10) gameOver = 'right';
+    else resetBall();
+  } else if (ball.x > width + 80) {
+    leftScore++;
+    if (leftScore >= 10) gameOver = 'left';
+    else resetBall();
+  }
 }
 
 function resetBall() {
@@ -308,24 +357,32 @@ function handleCollisions() {
 
   handleMicTrigger();
 
-  if (activeSegmentIndex >= 0 && millis() < activeUntil) {
-    var seg = segments[activeSegmentIndex];
-    if (circleRectCollision(ball, seg)) {
-      if (ball.x < seg.x) {
-        ball.x = seg.x - ball.r - 1;
-        ball.vx = -abs(ball.vx);
-      } else if (ball.x > seg.x + seg.w) {
-        ball.x = seg.x + seg.w + ball.r + 1;
-        ball.vx = abs(ball.vx);
-      } else {
-        ball.vy *= -1;
+  if (activeSegmentIndices.length > 0 && millis() < activeUntil) {
+    var hit = false;
+    for (var k = 0; k < activeSegmentIndices.length; k++) {
+      var seg = segments[activeSegmentIndices[k]];
+      if (circleRectCollision(ball, seg)) {
+        var cameFromLeft = ball.vx > 0; // 碰撞前 vx>0 表示从左往右
+        if (ball.x < seg.x) {
+          ball.x = seg.x - ball.r - 1;
+          ball.vx = -abs(ball.vx);
+        } else if (ball.x > seg.x + seg.w) {
+          ball.x = seg.x + seg.w + ball.r + 1;
+          ball.vx = abs(ball.vx);
+        } else {
+          ball.vy *= -1;
+        }
+        addRipple(seg.x + seg.w / 2, ball.y, '#ffffff');
+        cymbalSound.play();
+        if (cameFromLeft) { leftScore++;  if (leftScore >= 10) gameOver = 'left'; }
+        else              { rightScore++; if (rightScore >= 10) gameOver = 'right'; }
+        hit = true;
+        break;
       }
-      addRipple(seg.x + seg.w / 2, ball.y, '#ffffff');
-      cymbalSound.play();
-      activeSegmentIndex = -1;
     }
+    if (hit || millis() >= activeUntil) activeSegmentIndices = [];
   } else {
-    activeSegmentIndex = -1;
+    activeSegmentIndices = [];
   }
 }
 
@@ -334,7 +391,15 @@ function handleMicTrigger() {
   var now = millis();
   if (vol > micThreshold && now - lastPengTime > pengCooldown) {
     lastPengTime = now;
-    activeSegmentIndex = floor(random(SEG_COUNT));
+    var n = floor(random(2, 5)); // 2～4 块随机亮起
+    var pool = [];
+    for (var i = 0; i < SEG_COUNT; i++) pool.push(i);
+    activeSegmentIndices = [];
+    for (var j = 0; j < n && pool.length > 0; j++) {
+      var idx = floor(random(pool.length));
+      activeSegmentIndices.push(pool[idx]);
+      pool.splice(idx, 1);
+    }
     activeUntil = now + 800;
     addRipple(width / 2, height / 2, '#ffffff');
   }
@@ -378,27 +443,63 @@ function drawPaddles() {
 
 function drawCenterSegments() {
   rectMode(CORNER);
+
+  // 基底层：深色钢琴键基底（6段）
+  noStroke();
+  fill(color('#1a1a2e'));
+  for (var i = 0; i < segments.length; i++) {
+    var seg = segments[i];
+    rect(seg.x, seg.y, seg.w, seg.h, 4);
+  }
+
+  // 虚线中线
   stroke(80, 80, 120, 160);
   strokeWeight(2);
   for (var y = 0; y < height; y += 36) {
     line(width / 2, y, width / 2, y + 18);
   }
   noStroke();
+
+  // 亮起层：激活段绘制白色梯形发光
+  var litSet = {};
+  for (var k = 0; k < activeSegmentIndices.length; k++) litSet[activeSegmentIndices[k]] = true;
   for (var i = 0; i < segments.length; i++) {
     var seg = segments[i];
-    if (i === activeSegmentIndex && millis() < activeUntil) {
-      fill(255, 255, 255, 220);
-      rect(seg.x, seg.y, seg.w, seg.h, 4);
+    if (litSet[i] && millis() < activeUntil) {
+      var remaining = (activeUntil - millis()) / 800;
+      var alpha = floor(255 * remaining);
+      alpha = constrain(alpha, 0, 255);
+
+      // 梯形四顶点（两端略宽、中间略窄，模拟光带）
+      var x0 = seg.x - 3;
+      var x1 = seg.x + seg.w + 3;
+      var x2 = seg.x + seg.w - 2;
+      var x3 = seg.x + 2;
+      var y0 = seg.y;
+      var y1 = seg.y + seg.h;
+
       push();
       drawingContext.shadowBlur = 20;
-      drawingContext.shadowColor = '#ff9600';
-      noFill();
-      stroke(255, 150, 0, 150);
-      strokeWeight(3);
-      rect(seg.x - 4, seg.y - 4, seg.w + 8, seg.h + 8, 6);
+      drawingContext.shadowColor = 'rgba(255,255,255,0.6)';
+      fill(255, 255, 255, alpha);
+      quad(x0, y0, x1, y0, x2, y1, x3, y1);
       pop();
+
+      // 保留障碍实体描边（用于可见边界）
+      noFill();
+      stroke(255, 150, 0, 100);
+      strokeWeight(2);
+      rect(seg.x - 2, seg.y - 2, seg.w + 4, seg.h + 4, 6);
+      noStroke();
     }
   }
+}
+
+function syncCentrePianoKeysLit() {
+  var el = document.getElementById('centrePianoKeys');
+  if (!el) return;
+  var lit = activeSegmentIndices.length > 0 && millis() < activeUntil;
+  if (lit) el.classList.add('lit'); else el.classList.remove('lit');
 }
 
 function drawBallWithTrail() {
@@ -431,4 +532,32 @@ function drawHUD() {
     '左: W/S  右: ↑/↓  喊 Peng! 触发障碍  按 M 加载 jazz.mp3',
     14, 12
   );
+
+  // 先得 10 分者胜
+  textAlign(CENTER, TOP);
+  textSize(28);
+  fill(80, 140, 255);
+  text(leftScore, width * 0.25, 24);
+  fill(255, 150, 0);
+  text(rightScore, width * 0.75, 24);
+}
+
+function drawGameOver() {
+  if (bgImg) {
+    image(bgImg, 0, 0, width, height);
+  } else {
+    background('#0f0f19');
+  }
+  drawBackgroundGlow();
+  noStroke();
+  textAlign(CENTER, CENTER);
+  textSize(36);
+  fill(255, 200, 80);
+  text(gameOver === 'left' ? 'The left player wins!' : 'The right player wins!', width / 2, height / 2 - 50);
+  textSize(24);
+  fill(200);
+  text('Score  ' + leftScore + ' : ' + rightScore, width / 2, height / 2 + 10);
+  textSize(16);
+  fill(180);
+  text('按 R 或点击重新开始', width / 2, height / 2 + 60);
 }
