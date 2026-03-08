@@ -48,6 +48,7 @@ var win10Img1, win10Img2;
 var kickDrumSound;
 var saxSound;
 var bgMusic;
+var booSound;
 var catchGoodSound, catchBadSound, scoreSound;
 
 function createPercOsc(freq, durationMs, type, maxAmp) {
@@ -83,6 +84,7 @@ function preload() {
   kickDrumSound = loadSound('811705__soothsayer_orchestra__kickdrum-10.wav');
   saxSound = loadSound('448734__eitabyte__sax_noise_1-felipe-ruizbrx11.wav');
   bgMusic = loadSound('712632__kevp888__r4_00572_fr_jazz_trio_in_public_garden.wav');
+  booSound = loadSound('Boo sound .wav');
 }
 
 // ========== 初始化 (Setup) ==========
@@ -359,12 +361,18 @@ function updateMainBall() {
     }
   }
 
-  // 漏球机制 (仅发球，不得分)
+  // 漏球机制 (漏接扣一分)
   if (mainBall.x < -50) {
     if (scoreSound) scoreSound.play();
+    if (booSound) booSound.play(0, 1, 1, 0, 2); // 播放 boo sound，持续最多2秒
+    leftScore -= 1; // 左侧漏接，扣一分
+    checkWinCondition();
     resetMainBall();
   } else if (mainBall.x > width + 50) {
     if (scoreSound) scoreSound.play();
+    if (booSound) booSound.play(0, 1, 1, 0, 2); // 播放 boo sound，持续最多2秒
+    rightScore -= 1; // 右侧漏接，扣一分
+    checkWinCondition();
     resetMainBall();
   }
 }
@@ -455,15 +463,14 @@ function handleSpawners(trebleEnergy, bassEnergy, micVol) {
 function spawnBadNote(targetSide, energy, threshold) {
   var numNotes;
   if (targetSide === 'left') {
-    // Wuwu 触发向左发射干扰球
-    var mappedNum = map(energy, threshold, 255, 1, 2.99) * 1.44;
-    numNotes = floor(mappedNum);
-    numNotes = constrain(numNotes, 1, 4); // 上限提升到 4
+    // Wuwu 触发向左发射干扰球 (原本系数 * 1.44，现在比之前少 1.5倍，约 / 1.5)
+    var mappedNum = (map(energy, threshold, 255, 1, 2.99) * 1.44) / 1.5;
+    numNotes = floor(mappedNum); // 取消保底 1 颗，如果声音小可能发出 0 颗
   } else {
-    // Zizi 触发向右发射干扰球
-    var mappedNum = map(energy, threshold, 255, 1, 2.99) * 1.2;
+    // Zizi 触发向右发射干扰球 (原本系数 * 1.2，现在在之前基础上多 1.2倍，约 * 1.2)
+    var mappedNum = (map(energy, threshold, 255, 1, 2.99) * 1.2) * 1.2;
     numNotes = floor(mappedNum);
-    numNotes = constrain(numNotes, 1, 3); // 上限提升到 3
+    numNotes = constrain(numNotes, 1, 5); // 上限提升，因为多了
   }
 
   for (var i = 0; i < numNotes; i++) {
