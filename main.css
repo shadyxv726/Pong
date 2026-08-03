@@ -1,0 +1,42 @@
+.button-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.start-button,
+.restart-button {
+  font-family: inherit;
+  font-size: 18px;
+  letter-spacing: 1px;
+  padding: 14px 32px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, transform 0.1s;
+}
+
+.start-button {
+  background: #000000;
+  color: #ffffff;
+  border: 2px solid #000000;
+}
+
+.start-button:hover {
+  background: #1a1a1a;
+}
+
+.restart-button {
+  background: transparent;
+  color: #000000;
+  border: 2px solid #000000;
+}
+
+.restart-button:hover {
+  background: #000000;
+  color: #ffffff;
+}
+
+.start-button:active,
+.restart-button:active {
+  transform: scale(0.97);
+}

@@ -161,12 +161,19 @@ function setup() {
   gameOver = null;
 }
 
+// 重新开始一局：清空比分与结束状态，重置小球
+function restartGame() {
+  gameOver = null;
+  leftScore = 0;
+  rightScore = 0;
+  activeSegmentIndices = [];
+  ripples = [];
+  if (ball) resetBall();
+}
+
 function mousePressed() {
   if (gameOver) {
-    gameOver = null;
-    leftScore = 0;
-    rightScore = 0;
-    resetBall();
+    restartGame();
     return;
   }
   if (audioStarted) return;
@@ -205,10 +212,7 @@ function mousePressed() {
 // 按 R 键或点击可重新开始（游戏结束时）
 function keyPressed() {
   if (gameOver && (key === 'r' || key === 'R' || keyCode === 82)) {
-    gameOver = null;
-    leftScore = 0;
-    rightScore = 0;
-    resetBall();
+    restartGame();
     return false;
   }
   if (key === 'm' || key === 'M') {
