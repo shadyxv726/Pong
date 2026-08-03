@@ -39,7 +39,10 @@
     <div class="start-content"
       style="display: flex; flex-direction: column; align-items: center; gap: 24px; padding-bottom: 50px;">
       <img src="Group 5.png" alt="Whiplash" class="game-title" style="margin-bottom: 0;">
-      <button class="start-button" id="startBtn" style="margin-top: 0;">START JAMMING</button>
+      <div class="button-row">
+        <button class="start-button" id="startBtn">START JAMMING</button>
+        <button class="restart-button" id="restartBtn">再来一次</button>
+      </div>
     </div>
   </div>
 
@@ -48,14 +51,8 @@
     // Bind the start button to the existing logic inside sketch.js
     // sketch.js handles starting audio and dismissing .overlay
     // We will mimic mousePressed using an EventListener on startBtn
-    document.getElementById('startBtn').addEventListener('click', function (e) {
-      e.stopPropagation(); // keep it clean
-      // We manually invoke the setup logic inside sketch.js
-      if (typeof mousePressed === 'function') {
-        mousePressed();
-      }
-
-      // Also specifically hide the startPage layout
+    function enterGameView() {
+      // Hide the startPage layout
       document.getElementById('startPage').style.display = 'none';
 
       // Ensure HUD shows up
@@ -70,6 +67,26 @@
         canvasEl.style.display = 'block';
         canvasEl.style.visibility = 'visible';
       }
+    }
+
+    document.getElementById('startBtn').addEventListener('click', function (e) {
+      e.stopPropagation(); // keep it clean
+      // We manually invoke the setup logic inside sketch.js
+      if (typeof mousePressed === 'function') {
+        mousePressed();
+      }
+      enterGameView();
+    });
+
+    document.getElementById('restartBtn').addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (typeof mousePressed === 'function') {
+        mousePressed();
+      }
+      if (typeof restartGame === 'function') {
+        restartGame();
+      }
+      enterGameView();
     });
   </script>
 
