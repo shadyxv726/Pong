@@ -161,12 +161,25 @@ function setup() {
   gameOver = null;
 }
 
+// 胜利时统一收口：写入排行榜并展示
+function setGameOver(side) {
+  gameOver = side;
+  if (window.Leaderboard) {
+    window.Leaderboard.recordResult(side, leftScore, rightScore);
+  }
+}
+
+function restartGame() {
+  if (window.Leaderboard) window.Leaderboard.hide();
+  gameOver = null;
+  leftScore = 0;
+  rightScore = 0;
+  resetBall();
+}
+
 function mousePressed() {
   if (gameOver) {
-    gameOver = null;
-    leftScore = 0;
-    rightScore = 0;
-    resetBall();
+    restartGame();
     return;
   }
   if (audioStarted) return;
@@ -205,10 +218,11 @@ function mousePressed() {
 // 按 R 键或点击可重新开始（游戏结束时）
 function keyPressed() {
   if (gameOver && (key === 'r' || key === 'R' || keyCode === 82)) {
-    gameOver = null;
-    leftScore = 0;
-    rightScore = 0;
-    resetBall();
+    restartGame();
+    return false;
+  }
+  if (key === 'l' || key === 'L') {
+    if (window.Leaderboard) window.Leaderboard.show();
     return false;
   }
   if (key === 'm' || key === 'M') {
@@ -320,11 +334,11 @@ function updateBall() {
   if (ball.y + ball.r > height) { ball.y = height - ball.r; ball.vy *= -1; }
   if (ball.x < -80) {
     rightScore++;
-    if (rightScore >= 10) gameOver = 'right';
+    if (rightScore >= 10) setGameOver('right');
     else resetBall();
   } else if (ball.x > width + 80) {
     leftScore++;
-    if (leftScore >= 10) gameOver = 'left';
+    if (leftScore >= 10) setGameOver('left');
     else resetBall();
   }
 }
@@ -374,8 +388,8 @@ function handleCollisions() {
         }
         addRipple(seg.x + seg.w / 2, ball.y, '#ffffff');
         cymbalSound.play();
-        if (cameFromLeft) { leftScore++;  if (leftScore >= 10) gameOver = 'left'; }
-        else              { rightScore++; if (rightScore >= 10) gameOver = 'right'; }
+        if (cameFromLeft) { leftScore++;  if (leftScore >= 10) setGameOver('left'); }
+        else              { rightScore++; if (rightScore >= 10) setGameOver('right'); }
         hit = true;
         break;
       }
@@ -529,7 +543,7 @@ function drawHUD() {
     'Mic: ' + vol.toFixed(3) + ' (阈值 ' + micThreshold + ')\n' +
     'Music RMS: ' + rms.toFixed(3) + '\n' +
     '球速 |v| ≈ ' + speed.toFixed(2) + '\n\n' +
-    '左: W/S  右: ↑/↓  喊 Peng! 触发障碍  按 M 加载 jazz.mp3',
+    '左: W/S  右: ↑/↓  喊 Peng! 触发障碍  按 M 加载 jazz.mp3  按 L 查看排行榜',
     14, 12
   );
 
@@ -559,5 +573,5 @@ function drawGameOver() {
   text('Score  ' + leftScore + ' : ' + rightScore, width / 2, height / 2 + 10);
   textSize(16);
   fill(180);
-  text('按 R 或点击重新开始', width / 2, height / 2 + 60);
+  text('按 R 或点击重新开始    按 L 查看排行榜', width / 2, height / 2 + 60);
 }
