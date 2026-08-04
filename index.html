@@ -10,6 +10,7 @@
   <!-- p5.sound.js for audio processing (FFT) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
   <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="leaderboard.css">
 </head>
 
 <body>
@@ -40,9 +41,34 @@
       style="display: flex; flex-direction: column; align-items: center; gap: 24px; padding-bottom: 50px;">
       <img src="Group 5.png" alt="Whiplash" class="game-title" style="margin-bottom: 0;">
       <button class="start-button" id="startBtn" style="margin-top: 0;">START JAMMING</button>
+      <button class="leaderboard-button" id="leaderboardBtn">LEADERBOARD</button>
     </div>
   </div>
 
+  <!-- Leaderboard Modal -->
+  <div class="leaderboard-panel" id="leaderboardPanel">
+    <div class="leaderboard-card">
+      <h2>LEADERBOARD</h2>
+      <div class="lb-head">
+        <span>#</span>
+        <span>玩家</span>
+        <span>方位</span>
+        <span>比分</span>
+        <span>日期</span>
+      </div>
+      <div id="leaderboardBody"></div>
+      <div class="lb-undo-bar" id="leaderboardUndoBar" style="display: none;">
+        <span>记录已清空</span>
+        <button id="leaderboardUndoBtn">撤销</button>
+      </div>
+      <div class="leaderboard-actions">
+        <button id="leaderboardClearBtn">清空记录</button>
+        <button id="leaderboardCloseBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="leaderboard.js"></script>
   <script src="sketch.js"></script>
   <script>
     // Bind the start button to the existing logic inside sketch.js
@@ -72,8 +98,6 @@
       }
     });
   </script>
-
-  <script src="sketch.js"></script>
 </body>
 
 </html>
