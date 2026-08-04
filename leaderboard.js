@@ -48,9 +48,38 @@
     return entries;
   }
 
+  var UNDO_WINDOW_MS = 5000;
+  var pendingUndo = null; // { entries: [], timer: id }
+
+  function clearUndoState() {
+    if (pendingUndo && pendingUndo.timer) global.clearTimeout(pendingUndo.timer);
+    pendingUndo = null;
+    renderUndoBar();
+  }
+
+  // 清空后保留快照，5 秒内可撤销
   function clear() {
+    var snapshot = load();
+    if (pendingUndo && pendingUndo.timer) global.clearTimeout(pendingUndo.timer);
     save([]);
+    pendingUndo = {
+      entries: snapshot,
+      timer: global.setTimeout(clearUndoState, UNDO_WINDOW_MS)
+    };
     render();
+  }
+
+  function undoClear() {
+    if (!pendingUndo) return;
+    save(pendingUndo.entries);
+    clearUndoState();
+    render();
+  }
+
+  function renderUndoBar() {
+    var bar = document.getElementById('leaderboardUndoBar');
+    if (!bar) return;
+    bar.style.display = pendingUndo ? 'flex' : 'none';
   }
 
   function formatDate(ts) {
@@ -63,6 +92,7 @@
   function render() {
     var body = document.getElementById('leaderboardBody');
     if (!body) return;
+    renderUndoBar();
     var entries = sortEntries(load());
     if (entries.length === 0) {
       body.innerHTML = '<div class="lb-empty">暂无记录，赢下一局来登榜吧！</div>';
@@ -122,6 +152,8 @@
     if (clearBtn) clearBtn.addEventListener('click', function () {
       if (global.confirm('确定清空排行榜？')) clear();
     });
+    var undoBtn = document.getElementById('leaderboardUndoBtn');
+    if (undoBtn) undoBtn.addEventListener('click', undoClear);
     var panel = document.getElementById('leaderboardPanel');
     if (panel) panel.addEventListener('click', function (e) {
       if (e.target === panel) hide();
@@ -139,6 +171,7 @@
     load: load,
     add: add,
     clear: clear,
+    undoClear: undoClear,
     render: render,
     show: show,
     hide: hide,
