@@ -32,6 +32,31 @@ var gameOver = null; // null | 'left' | 'right' — first to 10 wins
 // 背景图
 var bgImg;
 
+// 对战模式：'duel' 双人对战，'ai' 单人对战电脑（电脑控制右拍）
+var gameMode = 'duel';
+var aiDifficulty = 'normal';
+var AI_PRESETS = {
+  easy:   { speed: 4.2, reaction: 0.06, error: 60 },
+  normal: { speed: 6,   reaction: 0.12, error: 32 },
+  hard:   { speed: 8.5, reaction: 0.22, error: 12 }
+};
+var gameStarted = false;
+var aiTargetY = 0;
+var aiErrorOffset = 0;
+var aiNextDecisionAt = 0;
+
+// 供 index.html 的开始按钮调用
+function startGame() {
+  gameStarted = true;
+}
+
+function setGameMode(mode, difficulty) {
+  gameMode = mode === 'ai' ? 'ai' : 'duel';
+  if (difficulty && AI_PRESETS[difficulty]) aiDifficulty = difficulty;
+  aiNextDecisionAt = 0;
+  aiErrorOffset = 0;
+}
+
 // 爵士背景乐：依次尝试在线（archive.org 通常支持 CORS），全失败则合成音
 // 也可将 jazz.mp3 放同目录后刷新
 var JAZZ_BG_URLS = [
@@ -169,6 +194,7 @@ function mousePressed() {
     resetBall();
     return;
   }
+  startGame();
   if (audioStarted) return;
   userStartAudio().then(function() {
     audioStarted = true;
@@ -245,6 +271,15 @@ function draw() {
   }
 
   drawBackgroundGlow();
+
+  // 开始前只静态渲染，避免在开始页背后自动比赛
+  if (!gameStarted) {
+    drawCenterSegments();
+    drawPaddles();
+    drawBallWithTrail();
+    return;
+  }
+
   applyMusicToBallSpeed();
 
   updatePaddles();
@@ -301,16 +336,49 @@ function updatePaddles() {
     leftPaddle.y += moveSpeed;
   }
 
-  // 右侧玩家：↑ / ↓
-  if (keyIsDown(38)) { // Up
-    rightPaddle.y -= moveSpeed;
-  }
-  if (keyIsDown(40)) { // Down
-    rightPaddle.y += moveSpeed;
+  if (gameMode === 'ai') {
+    updateAiPaddle();
+  } else {
+    // 右侧玩家：↑ / ↓
+    if (keyIsDown(38)) { // Up
+      rightPaddle.y -= moveSpeed;
+    }
+    if (keyIsDown(40)) { // Down
+      rightPaddle.y += moveSpeed;
+    }
   }
 
   leftPaddle.y = constrain(leftPaddle.y, 0, height - leftPaddle.h);
   rightPaddle.y = constrain(rightPaddle.y, 0, height - rightPaddle.h);
+}
+
+// 电脑控制右拍：预测球的落点，加入反应延迟与瞄准误差
+function updateAiPaddle() {
+  var preset = AI_PRESETS[aiDifficulty] || AI_PRESETS.normal;
+  var now = millis();
+
+  if (now >= aiNextDecisionAt) {
+    aiNextDecisionAt = now + (1 - preset.reaction) * 260;
+    aiErrorOffset = random(-preset.error, preset.error);
+    aiTargetY = ball.vx > 0 ? predictBallLandingY() : height / 2;
+  }
+
+  var desiredCenter = aiTargetY + aiErrorOffset;
+  var center = rightPaddle.y + rightPaddle.h / 2;
+  var delta = desiredCenter - center;
+  var step = constrain(delta, -preset.speed, preset.speed);
+  rightPaddle.y += step;
+}
+
+// 沿当前速度推演，考虑上下墙反弹，估计球到达右拍时的 y
+function predictBallLandingY() {
+  if (ball.vx <= 0) return height / 2;
+  var travel = rightPaddle.x - ball.x;
+  var y = ball.y + (ball.vy / ball.vx) * travel;
+  var span = height * 2;
+  y = ((y % span) + span) % span;
+  if (y > height) y = span - y;
+  return y;
 }
 
 function updateBall() {
@@ -529,7 +597,9 @@ function drawHUD() {
     'Mic: ' + vol.toFixed(3) + ' (阈值 ' + micThreshold + ')\n' +
     'Music RMS: ' + rms.toFixed(3) + '\n' +
     '球速 |v| ≈ ' + speed.toFixed(2) + '\n\n' +
-    '左: W/S  右: ↑/↓  喊 Peng! 触发障碍  按 M 加载 jazz.mp3',
+    '模式: ' + (gameMode === 'ai' ? '单人对战 AI (' + aiDifficulty + ')' : '双人对战') + '\n' +
+    (gameMode === 'ai' ? '左: W/S  右: AI' : '左: W/S  右: ↑/↓') +
+    '  喊 Peng! 触发障碍  按 M 加载 jazz.mp3',
     14, 12
   );
 

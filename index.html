@@ -39,6 +39,18 @@
     <div class="start-content"
       style="display: flex; flex-direction: column; align-items: center; gap: 24px; padding-bottom: 50px;">
       <img src="Group 5.png" alt="Whiplash" class="game-title" style="margin-bottom: 0;">
+
+      <!-- Versus mode selection -->
+      <div class="mode-select" id="modeSelect">
+        <button class="mode-button selected" id="modeDuelBtn" data-mode="duel">2P DUEL</button>
+        <button class="mode-button" id="modeAiBtn" data-mode="ai">VS AI</button>
+        <select class="difficulty-select" id="difficultySelect" disabled>
+          <option value="easy">EASY</option>
+          <option value="normal" selected>NORMAL</option>
+          <option value="hard">HARD</option>
+        </select>
+      </div>
+
       <button class="start-button" id="startBtn" style="margin-top: 0;">START JAMMING</button>
     </div>
   </div>
@@ -48,8 +60,27 @@
     // Bind the start button to the existing logic inside sketch.js
     // sketch.js handles starting audio and dismissing .overlay
     // We will mimic mousePressed using an EventListener on startBtn
+    var modeButtons = document.querySelectorAll('.mode-button');
+    var difficultySelect = document.getElementById('difficultySelect');
+    var selectedMode = 'duel';
+
+    modeButtons.forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        selectedMode = btn.getAttribute('data-mode');
+        modeButtons.forEach(function (other) { other.classList.remove('selected'); });
+        btn.classList.add('selected');
+        difficultySelect.disabled = selectedMode !== 'ai';
+      });
+    });
+
     document.getElementById('startBtn').addEventListener('click', function (e) {
       e.stopPropagation(); // keep it clean
+
+      // Tell the sketch which versus mode to run
+      if (typeof setGameMode === 'function') {
+        setGameMode(selectedMode, difficultySelect.value);
+      }
       // We manually invoke the setup logic inside sketch.js
       if (typeof mousePressed === 'function') {
         mousePressed();

@@ -1,0 +1,36 @@
+.mode-select {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mode-button {
+  padding: 8px 18px;
+  border: 2px solid #ff9600;
+  border-radius: 999px;
+  background: transparent;
+  color: #ff9600;
+  font-size: 14px;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.mode-button.selected {
+  background: #ff9600;
+  color: #0f0f19;
+}
+
+.difficulty-select {
+  padding: 8px 12px;
+  border: 2px solid #ff9600;
+  border-radius: 999px;
+  background: transparent;
+  color: #ff9600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.difficulty-select:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
