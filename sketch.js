@@ -40,11 +40,16 @@ var AI_PRESETS = {
   normal: { speed: 6,   reaction: 0.12, error: 32 },
   hard:   { speed: 8.5, reaction: 0.22, error: 12 }
 };
+var gameStarted = false;
 var aiTargetY = 0;
 var aiErrorOffset = 0;
 var aiNextDecisionAt = 0;
 
 // 供 index.html 的开始按钮调用
+function startGame() {
+  gameStarted = true;
+}
+
 function setGameMode(mode, difficulty) {
   gameMode = mode === 'ai' ? 'ai' : 'duel';
   if (difficulty && AI_PRESETS[difficulty]) aiDifficulty = difficulty;
@@ -189,6 +194,7 @@ function mousePressed() {
     resetBall();
     return;
   }
+  startGame();
   if (audioStarted) return;
   userStartAudio().then(function() {
     audioStarted = true;
@@ -265,6 +271,15 @@ function draw() {
   }
 
   drawBackgroundGlow();
+
+  // 开始前只静态渲染，避免在开始页背后自动比赛
+  if (!gameStarted) {
+    drawCenterSegments();
+    drawPaddles();
+    drawBallWithTrail();
+    return;
+  }
+
   applyMusicToBallSpeed();
 
   updatePaddles();
